@@ -30,9 +30,10 @@ function readImage(file: File) {
   });
 }
 
-type CreativeUploaderProps = { onOpenMediaLibrary?: () => void };
+export type SelectedMediaAsset = { name:string; url:string; width:number; height:number; size:number; type:string };
+type CreativeUploaderProps = { onOpenMediaLibrary?: () => void; selectedMedia?: SelectedMediaAsset | null };
 
-export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploaderProps) {
+export default function CreativeUploader({ onOpenMediaLibrary, selectedMedia }: CreativeUploaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -54,6 +55,18 @@ export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploade
   const [embedWidth, setEmbedWidth] = useState(600);
   const [embedHeight, setEmbedHeight] = useState(300);
   const [embedCode, setEmbedCode] = useState("");
+
+  useEffect(() => {
+    if (!selectedMedia) return;
+    setFile(null);
+    setPreviewUrl(selectedMedia.url);
+    setCreative({ width: selectedMedia.width, height: selectedMedia.height });
+    setWidth(selectedMedia.width);
+    setHeight(selectedMedia.height);
+    setEmbedWidth(selectedMedia.width);
+    setEmbedHeight(selectedMedia.height);
+    setMessage("Media Library image selected.");
+  }, [selectedMedia]);
 
   useEffect(() => {
     try {
@@ -180,7 +193,7 @@ export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploade
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file || !previewUrl || !creative || width < 1 || height < 1) return;
+    if (!previewUrl || !creative || width < 1 || height < 1) return;
     if (width > 1600 || height > 1200) {
       setMessage("Custom display size cannot exceed 1600 × 1200px.");
       return;
@@ -196,12 +209,15 @@ export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploade
     setMessage("");
 
     try {
-      const imageUrl = await readImage(file);
+      const imageUrl = file ? await readImage(file) : previewUrl;
       try {
         const media = JSON.parse(localStorage.getItem(MEDIA_KEY) ?? "[]") as Array<Record<string, unknown>>;
-        const alreadySaved = media.some((asset) => asset.name === file.name && asset.size === file.size);
+        const assetName = file?.name ?? selectedMedia?.name ?? "Media Library creative";
+        const assetSize = file?.size ?? selectedMedia?.size ?? 0;
+        const assetType = file?.type ?? selectedMedia?.type ?? "image/png";
+        const alreadySaved = media.some((asset) => asset.name === assetName && asset.size === assetSize);
         if (!alreadySaved) {
-          media.unshift({ id: crypto.randomUUID(), name: file.name, folder: "Unfiled", url: imageUrl, width: creative.width, height: creative.height, size: file.size, type: file.type, createdAt: new Date().toISOString() });
+          media.unshift({ id: crypto.randomUUID(), name: assetName, folder: "Unfiled", url: imageUrl, width: creative.width, height: creative.height, size: assetSize, type: assetType, createdAt: new Date().toISOString() });
           localStorage.setItem(MEDIA_KEY, JSON.stringify(media));
         }
       } catch {
@@ -209,7 +225,7 @@ export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploade
       }
       const ad: UploadedCreative = {
         id: crypto.randomUUID(),
-        name: file.name,
+        name: file?.name ?? selectedMedia?.name ?? "Media Library creative",
         imageUrl,
         destinationUrl,
         altText,
