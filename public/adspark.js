@@ -70,7 +70,8 @@
     image.decoding = "async";
     image.style.display = "block";
     image.style.width = "100%";
-    image.style.height = height + "px";\n    image.style.objectFit = "contain";
+    image.style.height = height + "px";
+    image.style.objectFit = "contain";
     image.style.maxWidth = "100%";
 
     link.appendChild(image);
