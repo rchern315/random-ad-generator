@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import styles from "./CreativeUploader.module.css";
 
 type Dimensions = { width: number; height: number };
@@ -29,8 +29,8 @@ function readImage(file: File) {
   });
 }
 
-export default function CreativeUploader() {
-  const [file, setFile] = useState<File | null>(null);
+type CreativeUploaderProps = { onOpenMediaLibrary?: () => void };\n\nexport default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploaderProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);\n  const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [creative, setCreative] = useState<Dimensions | null>(null);
   const [destinationUrl, setDestinationUrl] = useState("");
@@ -280,11 +280,19 @@ export default function CreativeUploader() {
         </div>
 
         <form className={styles.form} onSubmit={handleSubmit}>
-          <label className={styles.field}>
+          <div className={styles.field}>
             <span>Creative image</span>
-            <input type="file" accept="image/gif,image/jpeg,image/png" onChange={handleFile} required />
-            <small>GIF, JPEG, or PNG. This prototype saves ads in the current browser.</small>
-          </label>
+            <div className={styles.sourceChooser}>
+              <button type="button" className={styles.sourceButton} onClick={onOpenMediaLibrary}>
+                <strong>Media Library</strong><span>Choose an asset already in AdSpark</span>
+              </button>
+              <button type="button" className={styles.sourceButton} onClick={() => fileInputRef.current?.click()}>
+                <strong>Browse computer</strong><span>Upload from File Explorer</span>
+              </button>
+            </div>
+            <input ref={fileInputRef} className={styles.hiddenFile} type="file" accept="image/gif,image/jpeg,image/png" onChange={handleFile} />
+            {file ? <small>Selected: {file.name}</small> : <small>Choose from Media Library or browse JPG, PNG, and GIF files on your computer.</small>}
+          </div>
 
           {creative && (
             <div className={styles.creativeInfo}>
