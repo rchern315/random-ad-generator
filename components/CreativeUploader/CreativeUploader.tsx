@@ -29,8 +29,11 @@ function readImage(file: File) {
   });
 }
 
-type CreativeUploaderProps = { onOpenMediaLibrary?: () => void };\n\nexport default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploaderProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);\n  const [file, setFile] = useState<File | null>(null);
+type CreativeUploaderProps = { onOpenMediaLibrary?: () => void };
+
+export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploaderProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [creative, setCreative] = useState<Dimensions | null>(null);
   const [destinationUrl, setDestinationUrl] = useState("");
@@ -255,7 +258,8 @@ type CreativeUploaderProps = { onOpenMediaLibrary?: () => void };\n\nexport defa
     }))));
     const scriptUrl = `${window.location.origin}/adspark.js`;
     setEmbedCode(
-      `<div data-adspark-slot data-width="${embedWidth}" data-height="${embedHeight}" data-config="${config}"></div>\n<script src="${scriptUrl}" defer></script>`,
+      `<div data-adspark-slot data-width="${embedWidth}" data-height="${embedHeight}" data-config="${config}"></div>
+<script src="${scriptUrl}" defer></script>`,
     );
     setMessage("Embed code created. Use your deployed AdSpark URL when adding it to a live site.");
   }
