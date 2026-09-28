@@ -1,10 +1,28 @@
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f7fb;
+  --foreground: #17151d;
+  --surface: #ffffff;
+  --surface-soft: #f5f3fa;
+  --muted: #696572;
+  --border: #e7e3ec;
+  --border-strong: #cfc8d9;
+  --primary: #653db4;
+  --primary-hover: #53309a;
+  --primary-soft: #eee8fa;
+  --focus: rgba(101, 61, 180, 0.24);
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 22px;
+  --shadow: 0 18px 50px rgba(35, 24, 55, 0.07);
 }
 
 * {
   box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  background: var(--background);
 }
 
 html,
@@ -14,7 +32,23 @@ body {
 }
 
 body {
+  min-height: 100vh;
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+}
+
+::selection {
+  background: var(--primary-soft);
 }
