@@ -14,6 +14,6 @@ export default function PlatformWorkspace(){
  const tabs:[WorkspaceView,string][]=[["upload","Create Ad"],["media","Media Library"],["slots","Ad Slots"],["campaigns","Campaigns"],["analytics","Analytics"],["ai","Create with AI"]];
  return <section>
   <div className={styles.tabs} role="tablist" aria-label="AdSpark workspace">{tabs.map(([key,label])=><button key={key} className={view===key?styles.activeTab:styles.tab} type="button" role="tab" aria-selected={view===key} onClick={()=>setView(key)}>{label}</button>)}</div>
-  {view==="upload"&&<CreativeUploader/>}{view==="media"&&<MediaLibrary/>}{view==="slots"&&<AdSlots/>}{view==="campaigns"&&<Campaigns/>}{view==="analytics"&&<Analytics/>}{view==="ai"&&<AdWorkspace/>}
+  {view==="upload"&&<CreativeUploader onOpenMediaLibrary={() => setView("media")} />}{view==="media"&&<MediaLibrary/>}{view==="slots"&&<AdSlots/>}{view==="campaigns"&&<Campaigns/>}{view==="analytics"&&<Analytics/>}{view==="ai"&&<AdWorkspace/>}
  </section>
 }
