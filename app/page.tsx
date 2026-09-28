@@ -1,5 +1,5 @@
 import Header from "../components/Header/Header";
-import AdWorkspace from "../components/AdWorkspace/AdWorkspace";
+import PlatformWorkspace from "../components/PlatformWorkspace/PlatformWorkspace";
 import styles from "./page.module.css";
 
 export default function Home() {
@@ -8,15 +8,16 @@ export default function Home() {
       <Header />
       <main className={styles.main}>
         <section className={styles.hero}>
-          <p className={styles.eyebrow}>AI creative workspace</p>
-          <h1>Turn a simple idea into an ad concept.</h1>
+          <p className={styles.eyebrow}>Ad creation + delivery</p>
+          <h1>Create, upload, place, and rotate digital ads.</h1>
           <p className={styles.heroDescription}>
-            Define the product, audience, platform, and tone. AdSpark turns the
-            brief into a ready-to-review creative concept.
+            Bring finished creative or build a concept with AI. Configure clickable
+            ads for the placements your brands need, from wide homepage banners to
+            square article ads.
           </p>
         </section>
 
-        <AdWorkspace />
+        <PlatformWorkspace />
       </main>
     </div>
   );
