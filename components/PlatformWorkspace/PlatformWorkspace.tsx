@@ -3,7 +3,9 @@ import { useState } from "react";
 import AdWorkspace from "../AdWorkspace/AdWorkspace";
 import CreativeUploader from "../CreativeUploader/CreativeUploader";
 import MediaLibrary from "../MediaLibrary/MediaLibrary";
-import AdSlots from "../AdSlots/AdSlots";\nimport Campaigns from "../Campaigns/Campaigns";\nimport Analytics from "../Analytics/Analytics";
+import AdSlots from "../AdSlots/AdSlots";
+import Campaigns from "../Campaigns/Campaigns";
+import Analytics from "../Analytics/Analytics";
 import styles from "./PlatformWorkspace.module.css";
 
 type WorkspaceView="upload"|"media"|"slots"|"campaigns"|"analytics"|"ai";
