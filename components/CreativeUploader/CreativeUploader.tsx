@@ -38,7 +38,10 @@ export default function CreativeUploader() {
   const [width, setWidth] = useState(600);
   const [height, setHeight] = useState(300);
   const [rotation, setRotation] = useState<Rotation>("refresh");
-  const [cookieHours, setCookieHours] = useState(24);\n  const [scheduleMode, setScheduleMode] = useState<"continuous" | "scheduled">("continuous");\n  const [startsAt, setStartsAt] = useState("");\n  const [endsAt, setEndsAt] = useState("");
+  const [cookieHours, setCookieHours] = useState(24);
+  const [scheduleMode, setScheduleMode] = useState<"continuous" | "scheduled">("continuous");
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
   const [savedAds, setSavedAds] = useState<UploadedCreative[]>([]);
   const [previewAd, setPreviewAd] = useState<UploadedCreative | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -118,7 +121,8 @@ export default function CreativeUploader() {
     image.src = objectUrl;
   }
 
-  const ratioCompatible = creative !== null && Math.abs((creative.width / creative.height) - (width / height)) < 0.03;\n  const needsUpscale = creative !== null && (width > creative.width || height > creative.height);
+  const ratioCompatible = creative !== null && Math.abs((creative.width / creative.height) - (width / height)) < 0.03;
+  const needsUpscale = creative !== null && (width > creative.width || height > creative.height);
 
   const choosePreview = useCallback((candidates: UploadedCreative[]) => {
     const active = candidates.filter((ad) => ad.enabled && ad.placement.width === width && ad.placement.height === height);
