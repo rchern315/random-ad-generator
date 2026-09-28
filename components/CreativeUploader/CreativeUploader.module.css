@@ -44,7 +44,7 @@
 .button { min-height: 50px; border: 0; border-radius: var(--radius-sm); background: var(--primary); color: #fff; cursor: pointer; font: inherit; font-weight: 750; }
 .button:hover { background: var(--primary-hover); }
 .button:disabled { opacity: .65; cursor: wait; }
-.button:focus-visible, .adLink:focus-visible, .creativeInfo button:focus-visible, .secondaryButton:focus-visible, .adActions button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
+.button:focus-visible, .adLink:focus-visible, .secondaryButton:focus-visible, .adActions button:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
 .previewArea { display: grid; gap: 14px; }
 .badges { display: flex; flex-wrap: wrap; gap: 8px; }
 .badges span { padding: 6px 10px; border-radius: 999px; background: var(--primary-soft); color: var(--primary); font-size: .78rem; font-weight: 750; }
