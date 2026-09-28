@@ -1,8 +1,9 @@
 .tabs {
-  width: fit-content;
+  width: 100%;
   margin-bottom: 24px;
   padding: 5px;
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
   border: 1px solid var(--border);
   border-radius: 12px;
