@@ -16,7 +16,7 @@
       try {
         var destination = new URL(ad.destinationUrl);
         return (destination.protocol === "http:" || destination.protocol === "https:") &&
-          /^data:image\\/(gif|jpeg|png);base64,/i.test(ad.imageUrl);
+          /^data:image\/(gif|jpeg|png);base64,/i.test(ad.imageUrl);
       } catch {
         return false;
       }
