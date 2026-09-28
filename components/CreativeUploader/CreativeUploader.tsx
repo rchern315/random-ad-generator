@@ -38,7 +38,7 @@ export default function CreativeUploader() {
   const [width, setWidth] = useState(600);
   const [height, setHeight] = useState(300);
   const [rotation, setRotation] = useState<Rotation>("refresh");
-  const [cookieHours, setCookieHours] = useState(24);
+  const [cookieHours, setCookieHours] = useState(24);\n  const [scheduleMode, setScheduleMode] = useState<"continuous" | "scheduled">("continuous");\n  const [startsAt, setStartsAt] = useState("");\n  const [endsAt, setEndsAt] = useState("");
   const [savedAds, setSavedAds] = useState<UploadedCreative[]>([]);
   const [previewAd, setPreviewAd] = useState<UploadedCreative | null>(null);
   const [loaded, setLoaded] = useState(false);
@@ -118,7 +118,7 @@ export default function CreativeUploader() {
     image.src = objectUrl;
   }
 
-  const matchesPlacement = creative !== null && creative.width === width && creative.height === height;
+  const ratioCompatible = creative !== null && Math.abs((creative.width / creative.height) - (width / height)) < 0.03;\n  const needsUpscale = creative !== null && (width > creative.width || height > creative.height);
 
   const choosePreview = useCallback((candidates: UploadedCreative[]) => {
     const active = candidates.filter((ad) => ad.enabled && ad.placement.width === width && ad.placement.height === height);
@@ -297,26 +297,20 @@ export default function CreativeUploader() {
             <span>Image alt text</span>
             <input value={altText} onChange={(event) => setAltText(event.target.value)} placeholder="Describe the ad for screen-reader users" maxLength={180} required />
           </label>
-          <label className={styles.field}>
-            <span>Display size</span>
-            <select value={size} onChange={(event) => handleSize(event.target.value as keyof typeof sizes)}>
-              {Object.entries(sizes).map(([key, option]) => <option key={key} value={key}>{key === "custom" && creative ? `Original size — ${creative.width} × ${creative.height}` : option.label}</option>)}
-            </select>
-          </label>
-
-          <div className={styles.row}>
-            <label className={styles.field}><span>Width (px)</span><input type="number" min="1" max={size === "custom" ? 1600 : 1200} value={width} disabled={size !== "custom"} onChange={(event) => setWidth(Number(event.target.value))} /></label>
-            <label className={styles.field}><span>Height (px)</span><input type="number" min="1" max="1200" value={height} disabled={size !== "custom"} onChange={(event) => setHeight(Number(event.target.value))} /></label>
-          </div>
-
-          {size === "custom" && (
-            <small className={styles.limitNote}>Custom display size is limited to 1600 × 1200px. Larger source images can still be uploaded and scaled down.</small>
-          )}
+          <fieldset className={styles.sizeFieldset}>
+            <legend>Display size</legend>
+            <p>The uploaded image dimensions are used by default. Change these only when you need a custom rendered size.</p>
+            <div className={styles.row}>
+              <label className={styles.field}><span>Width (px)</span><input type="number" min="1" max="1600" value={width} onChange={(event) => setWidth(Number(event.target.value))} /></label>
+              <label className={styles.field}><span>Height (px)</span><input type="number" min="1" max="1200" value={height} onChange={(event) => setHeight(Number(event.target.value))} /></label>
+            </div>
+          </fieldset>
 
           {creative && (
-            <div className={matchesPlacement ? styles.match : styles.warning} role="status">
-              <strong>{matchesPlacement ? "Creative matches this placement." : "Creative dimensions do not match this placement."}</strong>
+            <div className={ratioCompatible && !needsUpscale ? styles.match : styles.warning} role="status">
+              <strong>{ratioCompatible ? (needsUpscale ? "Correct shape, but this placement would upscale the creative." : "Responsive fit looks good.") : "This creative has a different aspect ratio than the placement."}</strong>
               <span>Creative: {creative.width} × {creative.height}px · Placement: {width} × {height}px</span>
+              <span>{ratioCompatible ? "AdSpark will preserve the aspect ratio and scale down automatically on smaller screens." : "AdSpark will never stretch the image. Choose another creative or add a slot-specific version."}</span>
             </div>
           )}
 
@@ -335,6 +329,13 @@ export default function CreativeUploader() {
               <div className={styles.inlineInput}><input type="number" min="1" max="720" value={cookieHours} onChange={(event) => setCookieHours(Number(event.target.value))} /><span>hours</span></div>
             </label>
           )}
+
+          <fieldset className={styles.sizeFieldset}>
+            <legend>Schedule</legend>
+            <label className={styles.field}><span>Run</span><select value={scheduleMode} onChange={(event) => setScheduleMode(event.target.value as "continuous" | "scheduled")}><option value="continuous">Continuously until paused</option><option value="scheduled">Schedule dates and times</option></select></label>
+            {scheduleMode === "scheduled" && <div className={styles.row}><label className={styles.field}><span>Starts</span><input type="datetime-local" value={startsAt} onChange={(event) => setStartsAt(event.target.value)} required /></label><label className={styles.field}><span>Ends</span><input type="datetime-local" value={endsAt} onChange={(event) => setEndsAt(event.target.value)} required /></label></div>}
+            <small className={styles.limitNote}>The serving API will enforce campaign schedules so expired ads stop automatically.</small>
+          </fieldset>
 
           {message && <p className={styles.notice} role="status">{message}</p>}
           <button className={styles.button} type="submit" disabled={pending}>{pending ? "Saving…" : "Save ad to library"}</button>
