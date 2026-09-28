@@ -20,12 +20,6 @@ type UploadedCreative = {
 };
 
 const STORAGE_KEY = "adspark.creatives.v1";
-const sizes = {
-  leaderboard: { label: "Homepage banner — 1200 × 200", width: 1200, height: 200 },
-  square: { label: "Article square — 300 × 300", width: 300, height: 300 },
-  custom: { label: "Custom placement size", width: 600, height: 300 },
-};
-
 function readImage(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -41,7 +35,6 @@ export default function CreativeUploader() {
   const [creative, setCreative] = useState<Dimensions | null>(null);
   const [destinationUrl, setDestinationUrl] = useState("");
   const [altText, setAltText] = useState("");
-  const [size, setSize] = useState<keyof typeof sizes>("custom");
   const [width, setWidth] = useState(600);
   const [height, setHeight] = useState(300);
   const [rotation, setRotation] = useState<Rotation>("refresh");
@@ -51,11 +44,8 @@ export default function CreativeUploader() {
   const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
-  const [embedWidth, setEmbedWidth] = useState(1200);
-  const [embedHeight, setEmbedHeight] = useState(200);
-  const [embedCode, setEmbedCode] = useState("");
-  const [embedWidth, setEmbedWidth] = useState(1200);
-  const [embedHeight, setEmbedHeight] = useState(200);
+  const [embedWidth, setEmbedWidth] = useState(600);
+  const [embedHeight, setEmbedHeight] = useState(300);
   const [embedCode, setEmbedCode] = useState("");
 
   useEffect(() => {
@@ -116,25 +106,16 @@ export default function CreativeUploader() {
     const objectUrl = URL.createObjectURL(selected);
     setPreviewUrl(objectUrl);
     const image = new Image();
-    image.onload = () => setCreative({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onload = () => {
+      const detected = { width: image.naturalWidth, height: image.naturalHeight };
+      setCreative(detected);
+      setWidth(detected.width);
+      setHeight(detected.height);
+      setEmbedWidth(detected.width);
+      setEmbedHeight(detected.height);
+    };
     image.onerror = () => setMessage("This image could not be opened.");
     image.src = objectUrl;
-  }
-
-  function handleSize(value: keyof typeof sizes) {
-    setSize(value);
-    if (value !== "custom") {
-      setWidth(sizes[value].width);
-      setHeight(sizes[value].height);
-    }
-  }
-
-  function useCreativeDimensions() {
-    if (!creative) return;
-    const scale = Math.min(1, 1600 / creative.width, 1200 / creative.height);
-    setSize("custom");
-    setWidth(Math.max(1, Math.round(creative.width * scale)));
-    setHeight(Math.max(1, Math.round(creative.height * scale)));
   }
 
   const matchesPlacement = creative !== null && creative.width === width && creative.height === height;
@@ -304,7 +285,7 @@ export default function CreativeUploader() {
           {creative && (
             <div className={styles.creativeInfo}>
               <div><span>Uploaded creative</span><strong>{creative.width} × {creative.height}px</strong></div>
-              <button type="button" onClick={useCreativeDimensions}>Use image dimensions</button>
+              <span className={styles.autoDetected}>Auto-detected</span>
             </div>
           )}
 
@@ -386,20 +367,6 @@ export default function CreativeUploader() {
           <div className={styles.embedControls}>
             <label className={styles.field}><span>Width</span><input type="number" min="1" max="1600" value={embedWidth} onChange={(event) => setEmbedWidth(Number(event.target.value))} /></label>
             <label className={styles.field}><span>Height</span><input type="number" min="1" max="1200" value={embedHeight} onChange={(event) => setEmbedHeight(Number(event.target.value))} /></label>
-          </div>
-          <div className={styles.embedActions}>
-            <button className={styles.secondaryButton} type="button" onClick={createEmbedCode}>Generate embed code</button>
-            {embedCode && <button className={styles.secondaryButton} type="button" onClick={copyEmbedCode}>Copy</button>}
-          </div>
-          {embedCode && <textarea className={styles.embedCode} aria-label="Ad embed code" readOnly value={embedCode} rows={5} />}
-        </section>
-
-        <section className={styles.embedSection} aria-labelledby="embed-title">
-          <div className={styles.libraryHeading}><h3 id="embed-title">Place an ad on a brand page</h3></div>
-          <p className={styles.embedHelp}>Choose the ad size, then copy the snippet into an HTML/embed block where the ad should appear.</p>
-          <div className={styles.embedControls}>
-            <label className={styles.field}><span>Width</span><input type="number" min="1" max="4000" value={embedWidth} onChange={(event) => setEmbedWidth(Number(event.target.value))} /></label>
-            <label className={styles.field}><span>Height</span><input type="number" min="1" max="4000" value={embedHeight} onChange={(event) => setEmbedHeight(Number(event.target.value))} /></label>
           </div>
           <div className={styles.embedActions}>
             <button className={styles.secondaryButton} type="button" onClick={createEmbedCode}>Generate embed code</button>
