@@ -20,6 +20,7 @@ type UploadedCreative = {
 };
 
 const STORAGE_KEY = "adspark.creatives.v1";
+const MEDIA_KEY = "adspark.media.v1";
 function readImage(file: File) {
   return new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
@@ -196,6 +197,16 @@ export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploade
 
     try {
       const imageUrl = await readImage(file);
+      try {
+        const media = JSON.parse(localStorage.getItem(MEDIA_KEY) ?? "[]") as Array<Record<string, unknown>>;
+        const alreadySaved = media.some((asset) => asset.name === file.name && asset.size === file.size);
+        if (!alreadySaved) {
+          media.unshift({ id: crypto.randomUUID(), name: file.name, folder: "Unfiled", url: imageUrl, width: creative.width, height: creative.height, size: file.size, type: file.type, createdAt: new Date().toISOString() });
+          localStorage.setItem(MEDIA_KEY, JSON.stringify(media));
+        }
+      } catch {
+        // The ad can still be saved if the browser Media Library is full.
+      }
       const ad: UploadedCreative = {
         id: crypto.randomUUID(),
         name: file.name,
@@ -213,7 +224,7 @@ export default function CreativeUploader({ onOpenMediaLibrary }: CreativeUploade
       localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
       setSavedAds(next);
       setPreviewAd(ad);
-      setMessage("Ad saved in this browser's library.");
+      setMessage("Ad saved and creative added to Media Library.");
       setFile(null);
       setPreviewUrl("");
       setCreative(null);
