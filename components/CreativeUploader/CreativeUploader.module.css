@@ -87,3 +87,5 @@
   .adActions { grid-column: 2; }
   .empty { min-height: 200px; }
 }
+
+.sizeFieldset{margin:0;padding:16px;border:1px solid var(--border);border-radius:var(--radius-sm);display:grid;gap:14px}.sizeFieldset legend{padding:0 6px;font-size:.9rem;font-weight:750}.sizeFieldset>p{margin:0;color:var(--muted);font-size:.78rem;line-height:1.5}.autoDetected{padding:5px 8px;border-radius:999px;background:var(--primary-soft);color:var(--primary)!important;font-weight:750}.adLink{width:100%;height:100%;display:grid;place-items:center}.adLink img{width:100%;height:100%;object-fit:contain}.destination{min-width:0}.destination a{display:inline-block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
