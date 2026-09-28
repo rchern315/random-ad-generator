@@ -41,9 +41,9 @@ export default function CreativeUploader() {
   const [creative, setCreative] = useState<Dimensions | null>(null);
   const [destinationUrl, setDestinationUrl] = useState("");
   const [altText, setAltText] = useState("");
-  const [size, setSize] = useState<keyof typeof sizes>("leaderboard");
-  const [width, setWidth] = useState(1200);
-  const [height, setHeight] = useState(200);
+  const [size, setSize] = useState<keyof typeof sizes>("custom");
+  const [width, setWidth] = useState(600);
+  const [height, setHeight] = useState(300);
   const [rotation, setRotation] = useState<Rotation>("refresh");
   const [cookieHours, setCookieHours] = useState(24);
   const [savedAds, setSavedAds] = useState<UploadedCreative[]>([]);
@@ -264,9 +264,9 @@ export default function CreativeUploader() {
             <input value={altText} onChange={(event) => setAltText(event.target.value)} placeholder="Describe the ad for screen-reader users" maxLength={180} required />
           </label>
           <label className={styles.field}>
-            <span>Placement size</span>
+            <span>Display size</span>
             <select value={size} onChange={(event) => handleSize(event.target.value as keyof typeof sizes)}>
-              {Object.entries(sizes).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}
+              {Object.entries(sizes).map(([key, option]) => <option key={key} value={key}>{key === "custom" && creative ? `Original size — ${creative.width} × ${creative.height}` : option.label}</option>)}
             </select>
           </label>
 
@@ -274,6 +274,10 @@ export default function CreativeUploader() {
             <label className={styles.field}><span>Width (px)</span><input type="number" min="1" max="4000" value={width} disabled={size !== "custom"} onChange={(event) => setWidth(Number(event.target.value))} /></label>
             <label className={styles.field}><span>Height (px)</span><input type="number" min="1" max="4000" value={height} disabled={size !== "custom"} onChange={(event) => setHeight(Number(event.target.value))} /></label>
           </div>
+
+          {size === "custom" && (
+            <small className={styles.limitNote}>Custom display size is limited to 1600 × 1200px. Larger source images can still be uploaded and scaled down.</small>
+          )}
 
           {creative && (
             <div className={matchesPlacement ? styles.match : styles.warning} role="status">
