@@ -16,7 +16,7 @@ The AI copy generator uses the OpenAI Responses API through the server route at 
 
 The upload workspace accepts GIF, JPEG, and PNG creatives, click-through URLs, alt text, and preset or custom placements. Saved ads and rotation preferences are stored in this browser so you can test the workflow without configuring a database.
 
-Browser storage is for this prototype only: ads do not sync between browsers or users, and clearing site data removes them. The current app does not yet publish a cross-site embed or provide a shared production ad-serving backend.
+Browser storage is for this prototype only: ads do not sync between browsers or users, and clearing site data removes them. The workspace generates a copyable embed snippet for active ads at a selected size. The snippet includes the image data, so regenerate it after changing ads and keep it in a trusted CMS field. It loads the public `/adspark.js` file from the AdSpark deployment and supports random-on-refresh or first-party cookie rotation. A shared database, hosted image storage, user accounts, campaign scheduling, and reporting are future production work.
 
 ## Checks
 

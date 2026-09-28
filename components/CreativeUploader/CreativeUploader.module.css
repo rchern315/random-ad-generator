@@ -35,6 +35,7 @@
 .creativeInfo button, .secondaryButton, .adActions button {
   border: 1px solid var(--border-strong); border-radius: 8px; padding: 8px 10px; background: #fff; cursor: pointer; font: inherit; font-size: .8rem; font-weight: 700;
 }
+.limitNote { margin-top: -10px; color: var(--muted); font-size: .76rem; line-height: 1.45; }
 .warning, .match, .notice { padding: 13px 14px; border-radius: var(--radius-sm); font-size: .82rem; }
 .warning, .match { display: grid; gap: 4px; }
 .warning { border: 1px solid #f0c36b; background: #fff8e8; color: #6b4b0d; }
@@ -58,6 +59,11 @@
 .placeholder { width: 50px; height: 50px; margin-bottom: 12px; display: grid; place-items: center; border-radius: 15px; background: var(--primary-soft); color: var(--primary); font-size: 1.8rem; }
 .empty h3 { margin: 0 0 8px; }
 .empty p { max-width: 300px; margin: 0; color: var(--muted); line-height: 1.6; }
+.embedSection { margin-top: 24px; padding: 18px 0 22px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+.embedHelp { margin: 8px 0 14px; color: var(--muted); font-size: .82rem; line-height: 1.5; }
+.embedControls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.embedActions { margin-top: 12px; display: flex; flex-wrap: wrap; gap: 8px; }
+.embedCode { width: 100%; margin-top: 12px; padding: 12px; resize: vertical; border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--surface-soft); color: var(--foreground); font-family: var(--font-geist-mono), monospace; font-size: .72rem; line-height: 1.5; overflow-wrap: anywhere; }
 .library { margin-top: 26px; padding-top: 20px; border-top: 1px solid var(--border); }
 .libraryHeading { display: flex; justify-content: space-between; align-items: center; }
 .libraryHeading h3 { margin: 0; font-size: 1rem; }

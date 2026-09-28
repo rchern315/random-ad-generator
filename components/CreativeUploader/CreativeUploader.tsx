@@ -51,6 +51,12 @@ export default function CreativeUploader() {
   const [loaded, setLoaded] = useState(false);
   const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
+  const [embedWidth, setEmbedWidth] = useState(1200);
+  const [embedHeight, setEmbedHeight] = useState(200);
+  const [embedCode, setEmbedCode] = useState("");
+  const [embedWidth, setEmbedWidth] = useState(1200);
+  const [embedHeight, setEmbedHeight] = useState(200);
+  const [embedCode, setEmbedCode] = useState("");
 
   useEffect(() => {
     try {
@@ -125,9 +131,10 @@ export default function CreativeUploader() {
 
   function useCreativeDimensions() {
     if (!creative) return;
+    const scale = Math.min(1, 1600 / creative.width, 1200 / creative.height);
     setSize("custom");
-    setWidth(creative.width);
-    setHeight(creative.height);
+    setWidth(Math.max(1, Math.round(creative.width * scale)));
+    setHeight(Math.max(1, Math.round(creative.height * scale)));
   }
 
   const matchesPlacement = creative !== null && creative.width === width && creative.height === height;
@@ -185,6 +192,17 @@ export default function CreativeUploader() {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!file || !previewUrl || !creative || width < 1 || height < 1) return;
+    if (width > 1600 || height > 1200) {
+      setMessage("Custom display size cannot exceed 1600 × 1200px.");
+      return;
+    }
+    try {
+      const destination = new URL(destinationUrl);
+      if (destination.protocol !== "http:" && destination.protocol !== "https:") throw new Error();
+    } catch {
+      setMessage("Enter a valid http or https destination URL.");
+      return;
+    }
     setPending(true);
     setMessage("");
 
@@ -232,6 +250,41 @@ export default function CreativeUploader() {
     if (previewAd?.id === id) setPreviewAd(null);
   }
 
+  function createEmbedCode() {
+    const ads = savedAds.filter(
+      (ad) => ad.enabled && ad.placement.width === embedWidth && ad.placement.height === embedHeight,
+    );
+    if (!ads.length) {
+      setMessage(`Save or activate an ad for ${embedWidth} × ${embedHeight} to create its embed.`);
+      setEmbedCode("");
+      return;
+    }
+
+    const config = encodeURIComponent(JSON.stringify(ads.map((ad) => ({
+      id: ad.id,
+      imageUrl: ad.imageUrl,
+      destinationUrl: ad.destinationUrl,
+      altText: ad.altText,
+      rotation: ad.rotation,
+      cookieHours: ad.cookieHours,
+    }))));
+    const scriptUrl = `${window.location.origin}/adspark.js`;
+    setEmbedCode(
+      `<div data-adspark-slot data-width="${embedWidth}" data-height="${embedHeight}" data-config="${config}"></div>\n<script src="${scriptUrl}" defer></script>`,
+    );
+    setMessage("Embed code created. Use your deployed AdSpark URL when adding it to a live site.");
+  }
+
+  async function copyEmbedCode() {
+    if (!embedCode) return;
+    try {
+      await navigator.clipboard.writeText(embedCode);
+      setMessage("Embed code copied.");
+    } catch {
+      setMessage("Select and copy the embed code manually.");
+    }
+  }
+
   return (
     <div className={styles.workspace}>
       <section className={styles.card} aria-labelledby="upload-title">
@@ -271,8 +324,8 @@ export default function CreativeUploader() {
           </label>
 
           <div className={styles.row}>
-            <label className={styles.field}><span>Width (px)</span><input type="number" min="1" max="4000" value={width} disabled={size !== "custom"} onChange={(event) => setWidth(Number(event.target.value))} /></label>
-            <label className={styles.field}><span>Height (px)</span><input type="number" min="1" max="4000" value={height} disabled={size !== "custom"} onChange={(event) => setHeight(Number(event.target.value))} /></label>
+            <label className={styles.field}><span>Width (px)</span><input type="number" min="1" max={size === "custom" ? 1600 : 1200} value={width} disabled={size !== "custom"} onChange={(event) => setWidth(Number(event.target.value))} /></label>
+            <label className={styles.field}><span>Height (px)</span><input type="number" min="1" max="1200" value={height} disabled={size !== "custom"} onChange={(event) => setHeight(Number(event.target.value))} /></label>
           </div>
 
           {size === "custom" && (
@@ -326,6 +379,34 @@ export default function CreativeUploader() {
         ) : (
           <div className={styles.empty}><div className={styles.placeholder} aria-hidden="true">+</div><h3>No ad selected</h3><p>Save an ad to preview its size, link, and rotation behavior.</p></div>
         )}
+
+        <section className={styles.embedSection} aria-labelledby="embed-title">
+          <div className={styles.libraryHeading}><h3 id="embed-title">Place an ad on a brand page</h3></div>
+          <p className={styles.embedHelp}>Choose the ad size, then copy the snippet into an HTML/embed block where the ad should appear.</p>
+          <div className={styles.embedControls}>
+            <label className={styles.field}><span>Width</span><input type="number" min="1" max="1600" value={embedWidth} onChange={(event) => setEmbedWidth(Number(event.target.value))} /></label>
+            <label className={styles.field}><span>Height</span><input type="number" min="1" max="1200" value={embedHeight} onChange={(event) => setEmbedHeight(Number(event.target.value))} /></label>
+          </div>
+          <div className={styles.embedActions}>
+            <button className={styles.secondaryButton} type="button" onClick={createEmbedCode}>Generate embed code</button>
+            {embedCode && <button className={styles.secondaryButton} type="button" onClick={copyEmbedCode}>Copy</button>}
+          </div>
+          {embedCode && <textarea className={styles.embedCode} aria-label="Ad embed code" readOnly value={embedCode} rows={5} />}
+        </section>
+
+        <section className={styles.embedSection} aria-labelledby="embed-title">
+          <div className={styles.libraryHeading}><h3 id="embed-title">Place an ad on a brand page</h3></div>
+          <p className={styles.embedHelp}>Choose the ad size, then copy the snippet into an HTML/embed block where the ad should appear.</p>
+          <div className={styles.embedControls}>
+            <label className={styles.field}><span>Width</span><input type="number" min="1" max="4000" value={embedWidth} onChange={(event) => setEmbedWidth(Number(event.target.value))} /></label>
+            <label className={styles.field}><span>Height</span><input type="number" min="1" max="4000" value={embedHeight} onChange={(event) => setEmbedHeight(Number(event.target.value))} /></label>
+          </div>
+          <div className={styles.embedActions}>
+            <button className={styles.secondaryButton} type="button" onClick={createEmbedCode}>Generate embed code</button>
+            {embedCode && <button className={styles.secondaryButton} type="button" onClick={copyEmbedCode}>Copy</button>}
+          </div>
+          {embedCode && <textarea className={styles.embedCode} aria-label="Ad embed code" readOnly value={embedCode} rows={5} />}
+        </section>
 
         <div className={styles.library}>
           <div className={styles.libraryHeading}><h3>Saved ads</h3><span>{savedAds.length}</span></div>
