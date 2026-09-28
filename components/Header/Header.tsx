@@ -9,7 +9,7 @@ export default function Header() {
       </a>
       <div className={styles.status}>
         <span className={styles.statusDot} aria-hidden="true" />
-        AI workspace
+        Ad platform
       </div>
     </header>
   );
