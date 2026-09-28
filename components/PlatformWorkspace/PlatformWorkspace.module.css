@@ -1,0 +1,49 @@
+.tabs {
+  width: fit-content;
+  margin-bottom: 24px;
+  padding: 5px;
+  display: flex;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.tab,
+.activeTab {
+  min-height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+}
+
+.tab {
+  background: transparent;
+  color: var(--muted);
+}
+
+.activeTab {
+  background: var(--primary);
+  color: #fff;
+}
+
+.tab:focus-visible,
+.activeTab:focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 480px) {
+  .tabs {
+    width: 100%;
+  }
+
+  .tab,
+  .activeTab {
+    flex: 1;
+    padding: 0 12px;
+  }
+}
