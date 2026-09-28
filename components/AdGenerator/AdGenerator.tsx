@@ -17,95 +17,75 @@ type AdGeneratorProps = {
   onGenerate: (ad: AdDraft) => void;
 };
 
-const openings = [
-  "Meet the easier way to",
-  "Ready to transform how you",
-  "Your next favorite way to",
-  "Make every day better with",
-];
-
 export default function AdGenerator({ onGenerate }: AdGeneratorProps) {
   const [product, setProduct] = useState("");
   const [audience, setAudience] = useState("");
   const [platform, setPlatform] = useState("Instagram");
   const [tone, setTone] = useState("Friendly");
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setPending(true);
+    setError("");
 
-    const opening = openings[Math.floor(Math.random() * openings.length)];
-    const productName = product.trim() || "your product";
-    const audienceName = audience.trim() || "your customers";
+    try {
+      const response = await fetch("/api/generate-ad", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ product, audience, platform, tone }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || "Ad generation failed.");
 
-    onGenerate({
-      product: productName,
-      audience: audienceName,
-      platform,
-      tone,
-      headline: `${opening} ${productName}`,
-      body: `${productName} was made for ${audienceName}. Discover a ${tone.toLowerCase()} experience designed to get attention on ${platform}.`,
-      callToAction: "Learn More",
-    });
+      onGenerate({ product: product.trim(), audience: audience.trim(), platform, tone, ...result });
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Could not generate the ad.");
+    } finally {
+      setPending(false);
+    }
   }
 
   return (
     <section className={styles.card} aria-labelledby="generator-title">
       <div className={styles.heading}>
-        <span className={styles.eyebrow}>Creative brief</span>
+        <span className={styles.eyebrow}>AI creative studio</span>
         <h2 id="generator-title">What are we advertising?</h2>
-        <p>Give us a few details and generate a quick ad concept.</p>
+        <p>Describe the product and audience. AI will draft ad copy for your selected channel.</p>
       </div>
 
       <form className={styles.form} onSubmit={handleSubmit}>
         <label className={styles.field}>
           <span>Product or service</span>
-          <input
-            value={product}
-            onChange={(event) => setProduct(event.target.value)}
-            placeholder="e.g. Dog grooming membership"
-            required
-          />
+          <input value={product} onChange={(event) => setProduct(event.target.value)} placeholder="e.g. Dog grooming membership" maxLength={200} required />
         </label>
 
         <label className={styles.field}>
           <span>Target audience</span>
-          <input
-            value={audience}
-            onChange={(event) => setAudience(event.target.value)}
-            placeholder="e.g. Busy pet parents"
-            required
-          />
+          <input value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="e.g. Busy pet parents" maxLength={200} required />
         </label>
 
         <div className={styles.row}>
           <label className={styles.field}>
             <span>Platform</span>
             <select value={platform} onChange={(event) => setPlatform(event.target.value)}>
-              <option>Instagram</option>
-              <option>Facebook</option>
-              <option>LinkedIn</option>
-              <option>Google Ads</option>
+              <option>Instagram</option><option>Facebook</option><option>LinkedIn</option><option>Google Ads</option><option>Website display</option>
             </select>
           </label>
-
           <label className={styles.field}>
             <span>Tone</span>
             <select value={tone} onChange={(event) => setTone(event.target.value)}>
-              <option>Friendly</option>
-              <option>Professional</option>
-              <option>Playful</option>
-              <option>Bold</option>
+              <option>Friendly</option><option>Professional</option><option>Playful</option><option>Bold</option>
             </select>
           </label>
         </div>
 
-        <button className={styles.button} type="submit">
-          Generate ad
+        {error && <p className={styles.error} role="alert">{error}</p>}
+        <button className={styles.button} type="submit" disabled={pending}>
+          {pending ? "Generating with AI…" : "Generate ad with AI"}
         </button>
-
-        <p className={styles.helper}>
-          This first version generates locally. We&apos;ll replace the mock logic with an AI API next.
-        </p>
+        <p className={styles.helper}>Your API key stays on the server. Review generated copy for accuracy before publishing.</p>
       </form>
     </section>
   );

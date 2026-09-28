@@ -89,7 +89,7 @@
   outline-offset: 2px;
 }
 
-.helper {
+.error {\n  margin: -4px 0 0;\n  color: #b42318;\n  font-size: 0.85rem;\n  line-height: 1.5;\n}\n\n.helper {
   margin: -4px 0 0;
   color: var(--muted);
   font-size: 0.8rem;

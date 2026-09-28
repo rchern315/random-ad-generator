@@ -1,26 +1,39 @@
 "use client";
 
-import { ChangeEvent, FormEvent, useEffect, useState } from "react";
+import { ChangeEvent, FormEvent, useCallback, useEffect, useState } from "react";
 import styles from "./CreativeUploader.module.css";
 
 type Dimensions = { width: number; height: number };
-
+type Rotation = "fixed" | "refresh" | "sticky";
 type UploadedCreative = {
+  id: string;
   name: string;
   imageUrl: string;
   destinationUrl: string;
   altText: string;
   creative: Dimensions;
   placement: Dimensions;
-  rotation: "fixed" | "refresh" | "sticky";
+  rotation: Rotation;
   cookieHours: number;
+  enabled: boolean;
+  createdAt: string;
 };
 
+const STORAGE_KEY = "adspark.creatives.v1";
 const sizes = {
   leaderboard: { label: "Homepage banner — 1200 × 200", width: 1200, height: 200 },
   square: { label: "Article square — 300 × 300", width: 300, height: 300 },
   custom: { label: "Custom placement size", width: 600, height: 300 },
 };
+
+function readImage(file: File) {
+  return new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => typeof reader.result === "string" ? resolve(reader.result) : reject(new Error("Could not read the image."));
+    reader.onerror = () => reject(new Error("Could not read the image."));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function CreativeUploader() {
   const [file, setFile] = useState<File | null>(null);
@@ -31,13 +44,40 @@ export default function CreativeUploader() {
   const [size, setSize] = useState<keyof typeof sizes>("leaderboard");
   const [width, setWidth] = useState(1200);
   const [height, setHeight] = useState(200);
-  const [rotation, setRotation] = useState<UploadedCreative["rotation"]>("fixed");
+  const [rotation, setRotation] = useState<Rotation>("refresh");
   const [cookieHours, setCookieHours] = useState(24);
-  const [savedAd, setSavedAd] = useState<UploadedCreative | null>(null);
+  const [savedAds, setSavedAds] = useState<UploadedCreative[]>([]);
+  const [previewAd, setPreviewAd] = useState<UploadedCreative | null>(null);
+  const [loaded, setLoaded] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [message, setMessage] = useState("");
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEY);
+      if (stored) {
+        const parsed: unknown = JSON.parse(stored);
+        if (Array.isArray(parsed)) setSavedAds(parsed as UploadedCreative[]);
+      }
+    } catch {
+      setMessage("Saved ads could not be read from this browser.");
+    } finally {
+      setLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loaded) return;
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(savedAds));
+    } catch {
+      setMessage("Browser storage is full. Remove an ad or use a smaller image.");
+    }
+  }, [loaded, savedAds]);
 
   useEffect(() => {
     return () => {
-      if (previewUrl) URL.revokeObjectURL(previewUrl);
+      if (previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
     };
   }, [previewUrl]);
 
@@ -45,27 +85,38 @@ export default function CreativeUploader() {
     const selected = event.target.files?.[0] ?? null;
     setFile(selected);
     setCreative(null);
-    setSavedAd(null);
+    setMessage("");
+    if (previewUrl.startsWith("blob:")) URL.revokeObjectURL(previewUrl);
 
-    if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (!selected) {
+      setPreviewUrl("");
+      return;
+    }
+    if (!["image/gif", "image/jpeg", "image/png"].includes(selected.type)) {
+      setMessage("Choose a GIF, JPEG, or PNG image.");
+      event.target.value = "";
+      setFile(null);
+      setPreviewUrl("");
+      return;
+    }
+    if (selected.size > 1024 * 1024) {
+      setMessage("For this browser-based prototype, each image must be 1 MB or smaller.");
+      event.target.value = "";
+      setFile(null);
       setPreviewUrl("");
       return;
     }
 
     const objectUrl = URL.createObjectURL(selected);
     setPreviewUrl(objectUrl);
-
     const image = new Image();
-    image.onload = () => {
-      setCreative({ width: image.naturalWidth, height: image.naturalHeight });
-    };
+    image.onload = () => setCreative({ width: image.naturalWidth, height: image.naturalHeight });
+    image.onerror = () => setMessage("This image could not be opened.");
     image.src = objectUrl;
   }
 
   function handleSize(value: keyof typeof sizes) {
     setSize(value);
-    setSavedAd(null);
     if (value !== "custom") {
       setWidth(sizes[value].width);
       setHeight(sizes[value].height);
@@ -77,28 +128,108 @@ export default function CreativeUploader() {
     setSize("custom");
     setWidth(creative.width);
     setHeight(creative.height);
-    setSavedAd(null);
   }
 
-  const matchesPlacement =
-    creative !== null &&
-    creative.width === width &&
-    creative.height === height;
+  const matchesPlacement = creative !== null && creative.width === width && creative.height === height;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  const choosePreview = useCallback((candidates: UploadedCreative[]) => {
+    const active = candidates.filter((ad) => ad.enabled && ad.placement.width === width && ad.placement.height === height);
+    if (!active.length) {
+      setPreviewAd(null);
+      setMessage("No active ads are saved for this placement yet.");
+      return;
+    }
+
+    const fixed = active.filter((ad) => ad.rotation === "fixed");
+    if (fixed.length) {
+      setPreviewAd(fixed[0]);
+      setMessage("Showing the fixed ad for this placement.");
+      return;
+    }
+
+    const sticky = active.filter((ad) => ad.rotation === "sticky");
+    if (sticky.length) {
+      const key = `adspark.sticky.${width}x${height}`;
+      try {
+        const saved = document.cookie.split("; ").find((part) => part.startsWith(`${key}=`));
+        if (saved) {
+          const [id, expiresAt] = decodeURIComponent(saved.slice(key.length + 1)).split("|");
+          const match = sticky.find((ad) => ad.id === id);
+          if (match && Number(expiresAt) > Date.now()) {
+            setPreviewAd(match);
+            setMessage(`Sticky selection stays for ${match.cookieHours} hours.`);
+            return;
+          }
+        }
+      } catch {
+        // Create a fresh selection if browser cookies are unavailable.
+      }
+      const next = sticky[Math.floor(Math.random() * sticky.length)];
+      const expiresAt = Date.now() + next.cookieHours * 60 * 60 * 1000;
+      document.cookie = `${key}=${encodeURIComponent(`${next.id}|${expiresAt}`)}; Max-Age=${next.cookieHours * 60 * 60}; Path=/; SameSite=Lax`;
+      setPreviewAd(next);
+      setMessage(`Random ad selected; it will stay for ${next.cookieHours} hours.`);
+      return;
+    }
+
+    const rotating = active.filter((ad) => ad.rotation === "refresh");
+    const next = rotating[Math.floor(Math.random() * rotating.length)];
+    setPreviewAd(next);
+    setMessage("Random ad selected for this page view.");
+  }, [width, height]);
+
+  useEffect(() => {
+    if (loaded && savedAds.length) choosePreview(savedAds);
+  }, [choosePreview, loaded, savedAds]);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!file || !previewUrl || !creative) return;
+    if (!file || !previewUrl || !creative || width < 1 || height < 1) return;
+    setPending(true);
+    setMessage("");
 
-    setSavedAd({
-      name: file.name,
-      imageUrl: previewUrl,
-      destinationUrl,
-      altText,
-      creative,
-      placement: { width, height },
-      rotation,
-      cookieHours,
-    });
+    try {
+      const imageUrl = await readImage(file);
+      const ad: UploadedCreative = {
+        id: crypto.randomUUID(),
+        name: file.name,
+        imageUrl,
+        destinationUrl,
+        altText,
+        creative,
+        placement: { width, height },
+        rotation,
+        cookieHours: Math.max(1, cookieHours),
+        enabled: true,
+        createdAt: new Date().toISOString(),
+      };
+      const next = [ad, ...savedAds];
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+      setSavedAds(next);
+      setPreviewAd(ad);
+      setMessage("Ad saved in this browser's library.");
+      setFile(null);
+      setPreviewUrl("");
+      setCreative(null);
+      setDestinationUrl("");
+      setAltText("");
+      const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+      if (input) input.value = "";
+    } catch (cause) {
+      setMessage(cause instanceof Error ? cause.message : "Could not save this ad.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  function updateAd(id: string, changes: Partial<UploadedCreative>) {
+    setSavedAds((ads) => ads.map((ad) => ad.id === id ? { ...ad, ...changes } : ad));
+    if (previewAd?.id === id && changes.enabled === false) setPreviewAd(null);
+  }
+
+  function removeAd(id: string) {
+    setSavedAds((ads) => ads.filter((ad) => ad.id !== id));
+    if (previewAd?.id === id) setPreviewAd(null);
   }
 
   return (
@@ -114,18 +245,13 @@ export default function CreativeUploader() {
           <label className={styles.field}>
             <span>Creative image</span>
             <input type="file" accept="image/gif,image/jpeg,image/png" onChange={handleFile} required />
-            <small>GIF, JPEG, or PNG. We read the image dimensions automatically.</small>
+            <small>GIF, JPEG, or PNG. This prototype saves ads in the current browser.</small>
           </label>
 
           {creative && (
             <div className={styles.creativeInfo}>
-              <div>
-                <span>Uploaded creative</span>
-                <strong>{creative.width} × {creative.height}px</strong>
-              </div>
-              <button type="button" onClick={useCreativeDimensions}>
-                Use as custom placement
-              </button>
+              <div><span>Uploaded creative</span><strong>{creative.width} × {creative.height}px</strong></div>
+              <button type="button" onClick={useCreativeDimensions}>Use image dimensions</button>
             </div>
           )}
 
@@ -133,61 +259,47 @@ export default function CreativeUploader() {
             <span>Destination URL</span>
             <input type="url" value={destinationUrl} onChange={(event) => setDestinationUrl(event.target.value)} placeholder="https://advertiser.com/offer" required />
           </label>
-
           <label className={styles.field}>
             <span>Image alt text</span>
-            <input value={altText} onChange={(event) => setAltText(event.target.value)} placeholder="Describe the ad for screen-reader users" required />
+            <input value={altText} onChange={(event) => setAltText(event.target.value)} placeholder="Describe the ad for screen-reader users" maxLength={180} required />
           </label>
-
           <label className={styles.field}>
             <span>Placement size</span>
             <select value={size} onChange={(event) => handleSize(event.target.value as keyof typeof sizes)}>
-              {Object.entries(sizes).map(([key, option]) => (
-                <option key={key} value={key}>{option.label}</option>
-              ))}
+              {Object.entries(sizes).map(([key, option]) => <option key={key} value={key}>{option.label}</option>)}
             </select>
           </label>
 
           <div className={styles.row}>
-            <label className={styles.field}>
-              <span>Width (px)</span>
-              <input type="number" min="1" value={width} disabled={size !== "custom"} onChange={(event) => setWidth(Number(event.target.value))} />
-            </label>
-            <label className={styles.field}>
-              <span>Height (px)</span>
-              <input type="number" min="1" value={height} disabled={size !== "custom"} onChange={(event) => setHeight(Number(event.target.value))} />
-            </label>
+            <label className={styles.field}><span>Width (px)</span><input type="number" min="1" max="4000" value={width} disabled={size !== "custom"} onChange={(event) => setWidth(Number(event.target.value))} /></label>
+            <label className={styles.field}><span>Height (px)</span><input type="number" min="1" max="4000" value={height} disabled={size !== "custom"} onChange={(event) => setHeight(Number(event.target.value))} /></label>
           </div>
 
           {creative && (
             <div className={matchesPlacement ? styles.match : styles.warning} role="status">
               <strong>{matchesPlacement ? "Creative matches this placement." : "Creative dimensions do not match this placement."}</strong>
-              <span>
-                Creative: {creative.width} × {creative.height}px · Placement: {width} × {height}px
-              </span>
+              <span>Creative: {creative.width} × {creative.height}px · Placement: {width} × {height}px</span>
             </div>
           )}
 
           <label className={styles.field}>
             <span>Rotation behavior</span>
-            <select value={rotation} onChange={(event) => setRotation(event.target.value as UploadedCreative["rotation"])}>
-              <option value="fixed">Fixed — always display this ad</option>
-              <option value="refresh">Random pool — change on page refresh</option>
-              <option value="sticky">Sticky random — keep until cookie expires</option>
+            <select value={rotation} onChange={(event) => setRotation(event.target.value as Rotation)}>
+              <option value="refresh">Random pool — choose on each page refresh</option>
+              <option value="sticky">Sticky random — keep until browser cookie expires</option>
+              <option value="fixed">Fixed — always show this ad</option>
             </select>
           </label>
 
           {rotation === "sticky" && (
             <label className={styles.field}>
               <span>Keep selected ad for</span>
-              <div className={styles.inlineInput}>
-                <input type="number" min="1" value={cookieHours} onChange={(event) => setCookieHours(Number(event.target.value))} />
-                <span>hours</span>
-              </div>
+              <div className={styles.inlineInput}><input type="number" min="1" max="720" value={cookieHours} onChange={(event) => setCookieHours(Number(event.target.value))} /><span>hours</span></div>
             </label>
           )}
 
-          <button className={styles.button} type="submit">Save & preview ad</button>
+          {message && <p className={styles.notice} role="status">{message}</p>}
+          <button className={styles.button} type="submit" disabled={pending}>{pending ? "Saving…" : "Save ad to library"}</button>
         </form>
       </section>
 
@@ -195,38 +307,43 @@ export default function CreativeUploader() {
         <div className={styles.heading}>
           <span className={styles.eyebrow}>Placement preview</span>
           <h2 id="creative-preview-title">Clickable ad preview</h2>
-          <p>The creative is never stretched. A mismatch is shown so the wrong artwork is not assigned accidentally.</p>
+          <p>Preview the creative at its configured size and test how rotation will select an ad.</p>
         </div>
 
-        {savedAd ? (
+        {previewAd ? (
           <div className={styles.previewArea}>
-            <div className={styles.badges}>
-              <span>{savedAd.placement.width} × {savedAd.placement.height} placement</span>
-              <span className={savedAd.creative.width === savedAd.placement.width && savedAd.creative.height === savedAd.placement.height ? styles.goodBadge : styles.warnBadge}>
-                {savedAd.creative.width} × {savedAd.creative.height} creative
-              </span>
+            <div className={styles.badges}><span>{previewAd.placement.width} × {previewAd.placement.height} placement</span><span>{previewAd.rotation} rotation</span></div>
+            <div className={styles.placementFrame} style={{ aspectRatio: `${previewAd.placement.width} / ${previewAd.placement.height}`, maxWidth: `${previewAd.placement.width}px` }}>
+              <a className={styles.adLink} href={previewAd.destinationUrl} target="_blank" rel="noopener noreferrer"><img src={previewAd.imageUrl} alt={previewAd.altText} /></a>
             </div>
-            <div
-              className={styles.placementFrame}
-              style={{ aspectRatio: `${savedAd.placement.width} / ${savedAd.placement.height}`, maxWidth: `${savedAd.placement.width}px` }}
-            >
-              <a className={styles.adLink} href={savedAd.destinationUrl} target="_blank" rel="noopener noreferrer">
-                <img src={savedAd.imageUrl} alt={savedAd.altText} />
-              </a>
-            </div>
-            <dl className={styles.details}>
-              <div><dt>File</dt><dd>{savedAd.name}</dd></div>
-              <div><dt>Destination</dt><dd>{savedAd.destinationUrl}</dd></div>
-              <div><dt>Rotation</dt><dd>{savedAd.rotation === "sticky" ? `Sticky random · ${savedAd.cookieHours}h` : savedAd.rotation}</dd></div>
-            </dl>
+            <p className={styles.destination}>Opens: <a href={previewAd.destinationUrl} target="_blank" rel="noopener noreferrer">{previewAd.destinationUrl}</a></p>
+            <button className={styles.secondaryButton} type="button" onClick={() => choosePreview(savedAds)}>Preview another eligible ad</button>
           </div>
         ) : (
-          <div className={styles.empty}>
-            <div className={styles.placeholder} aria-hidden="true">+</div>
-            <h3>No creative saved yet</h3>
-            <p>Upload an image and configure the ad to see its placement preview.</p>
-          </div>
+          <div className={styles.empty}><div className={styles.placeholder} aria-hidden="true">+</div><h3>No ad selected</h3><p>Save an ad to preview its size, link, and rotation behavior.</p></div>
         )}
+
+        <div className={styles.library}>
+          <div className={styles.libraryHeading}><h3>Saved ads</h3><span>{savedAds.length}</span></div>
+          {savedAds.length === 0 ? <p className={styles.libraryEmpty}>Your saved ads will appear here.</p> : (
+            <ul className={styles.adList}>
+              {savedAds.map((ad) => (
+                <li className={styles.adRow} key={ad.id}>
+                  <img src={ad.imageUrl} alt="" />
+                  <div className={styles.adSummary}>
+                    <strong>{ad.name}</strong>
+                    <span>{ad.placement.width} × {ad.placement.height} · {ad.rotation}</span>
+                    <span>{ad.enabled ? "Active" : "Paused"}</span>
+                  </div>
+                  <div className={styles.adActions}>
+                    <button type="button" onClick={() => updateAd(ad.id, { enabled: !ad.enabled })}>{ad.enabled ? "Pause" : "Activate"}</button>
+                    <button type="button" onClick={() => removeAd(ad.id)} aria-label={`Delete ${ad.name}`}>Delete</button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
       </section>
     </div>
   );
