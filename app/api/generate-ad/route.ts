@@ -28,12 +28,31 @@ export async function POST(request: Request) {
     usage.count += 1;
   }
 
+  // Public portfolio demo mode never invokes a paid model.
+  // Use server-only configuration; do not add a billable API key to the public demo.
+  if (process.env.ADSPARK_DEMO_MODE === "true") {
+    let brief: Record<string, unknown>;
+    try { brief = await request.json(); } catch {
+      return NextResponse.json({ error: "Send a valid ad brief." }, { status: 400 });
+    }
+    const product = typeof brief.product === "string" ? brief.product.trim().slice(0, 200) : "";
+    const audience = typeof brief.audience === "string" ? brief.audience.trim().slice(0, 200) : "";
+    const platform = typeof brief.platform === "string" ? brief.platform.trim().slice(0, 80) : "";
+    const tone = typeof brief.tone === "string" ? brief.tone.trim().slice(0, 80) : "";
+    if (!product || !audience || !platform || !tone) {
+      return NextResponse.json({ error: "Complete each field in the creative brief." }, { status: 400 });
+    }
+    return NextResponse.json({
+      headline: `Discover ${product}`,
+      body: `Explore ${product} for ${audience}. This is a sample ad preview for ${platform} in a ${tone.toLowerCase()} tone, not AI-generated copy.`,
+      callToAction: "Learn More",
+      demo: true,
+    });
+  }
+
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    return NextResponse.json(
-      { error: "AI is not configured yet. Add OPENAI_API_KEY to .env.local and restart the app." },
-      { status: 503 },
-    );
+    return NextResponse.json({ error: "AI generation is not enabled for this deployment." }, { status: 503 });
   }
 
   let brief: Record<string, unknown>;
