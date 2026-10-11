@@ -39,12 +39,14 @@ export async function POST(request: Request) {
     const audience = typeof brief.audience === "string" ? brief.audience.trim().slice(0, 200) : "";
     const platform = typeof brief.platform === "string" ? brief.platform.trim().slice(0, 80) : "";
     const tone = typeof brief.tone === "string" ? brief.tone.trim().slice(0, 80) : "";
-    if (!product || !audience || !platform || !tone) {
+    const instructions = typeof brief.instructions === "string" ? brief.instructions.trim().slice(0, 1200) : "";
+    const destinationUrl = typeof brief.destinationUrl === "string" ? brief.destinationUrl.trim() : "";
+    if (!product || !audience || !platform || !tone || !instructions || !/^https?:\/\//i.test(destinationUrl)) {
       return NextResponse.json({ error: "Complete each field in the creative brief." }, { status: 400 });
     }
     return NextResponse.json({
       headline: `Discover ${product}`,
-      body: `Explore ${product} for ${audience}. This is a sample ad preview for ${platform} in a ${tone.toLowerCase()} tone, not AI-generated copy.`,
+      body: `Explore ${product} for ${audience}. Campaign direction: ${instructions.slice(0, 120)}. This is sample preview copy, not AI-generated creative.`,
       callToAction: "Learn More",
       demo: true,
     });
@@ -67,7 +69,9 @@ export async function POST(request: Request) {
   const platform = typeof brief.platform === "string" ? brief.platform.trim().slice(0, 80) : "";
   const tone = typeof brief.tone === "string" ? brief.tone.trim().slice(0, 80) : "";
 
-  if (!product || !audience || !platform || !tone) {
+  const instructions = typeof brief.instructions === "string" ? brief.instructions.trim().slice(0, 1200) : "";
+  const destinationUrl = typeof brief.destinationUrl === "string" ? brief.destinationUrl.trim() : "";
+  if (!product || !audience || !platform || !tone || !instructions || !/^https?:\/\//i.test(destinationUrl)) {
     return NextResponse.json({ error: "Complete each field in the creative brief." }, { status: 400 });
   }
 
@@ -89,7 +93,7 @@ export async function POST(request: Request) {
           },
           {
             role: "user",
-            content: JSON.stringify({ product, audience, platform, tone }),
+            content: JSON.stringify({ product, audience, platform, tone, instructions, destinationUrl }),
           },
         ],
         text: {
