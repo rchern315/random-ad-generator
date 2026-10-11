@@ -24,6 +24,7 @@ export default function AdGenerator({ onGenerate }: AdGeneratorProps) {
   const [tone, setTone] = useState("Friendly");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const [isDemo, setIsDemo] = useState(false);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,6 +40,7 @@ export default function AdGenerator({ onGenerate }: AdGeneratorProps) {
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Ad generation failed.");
 
+      setIsDemo(result.demo === true);
       onGenerate({ product: product.trim(), audience: audience.trim(), platform, tone, ...result });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not generate the ad.");
@@ -82,10 +84,11 @@ export default function AdGenerator({ onGenerate }: AdGeneratorProps) {
         </div>
 
         {error && <p className={styles.error} role="alert">{error}</p>}
+        {isDemo && <p role="status">Sample copy generated in portfolio demo mode. This preview does not use AI.</p>}
         <button className={styles.button} type="submit" disabled={pending}>
           {pending ? "Generating with AI…" : "Generate ad with AI"}
         </button>
-        <p className={styles.helper}>Your API key stays on the server. Review generated copy for accuracy before publishing.</p>
+        <p className={styles.helper}>Public demo uses sample copy with no paid AI requests. Review all copy for accuracy before publishing.</p>
       </form>
     </section>
   );
