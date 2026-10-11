@@ -26,7 +26,7 @@ export default function AdPreview({ ad }: AdPreviewProps) {
             <p className={styles.audience}>For {ad.audience}</p>
             <h3>{ad.headline}</h3>
             <p>{ad.body}</p>
-            <span className={styles.cta}>{ad.callToAction}</span>
+            <a className={styles.cta} href={ad.destinationUrl} target="_blank" rel="noopener noreferrer">{ad.callToAction} ↗</a>
           </div>
         </article>
       ) : (
