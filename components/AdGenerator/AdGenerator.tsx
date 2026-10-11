@@ -5,6 +5,8 @@ import styles from "./AdGenerator.module.css";
 
 export type AdDraft = {
   product: string;
+  destinationUrl: string;
+  instructions: string;
   audience: string;
   platform: string;
   tone: string;
@@ -19,6 +21,8 @@ type AdGeneratorProps = {
 
 export default function AdGenerator({ onGenerate }: AdGeneratorProps) {
   const [product, setProduct] = useState("");
+  const [destinationUrl, setDestinationUrl] = useState("");
+  const [instructions, setInstructions] = useState("");
   const [audience, setAudience] = useState("");
   const [platform, setPlatform] = useState("Instagram");
   const [tone, setTone] = useState("Friendly");
@@ -35,13 +39,13 @@ export default function AdGenerator({ onGenerate }: AdGeneratorProps) {
       const response = await fetch("/api/generate-ad", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ product, audience, platform, tone }),
+        body: JSON.stringify({ product, audience, platform, tone, destinationUrl, instructions }),
       });
       const result = await response.json();
       if (!response.ok) throw new Error(result.error || "Ad generation failed.");
 
       setIsDemo(result.demo === true);
-      onGenerate({ product: product.trim(), audience: audience.trim(), platform, tone, ...result });
+      onGenerate({ product: product.trim(), audience: audience.trim(), platform, tone, destinationUrl, instructions, ...result });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not generate the ad.");
     } finally {
@@ -68,6 +72,8 @@ export default function AdGenerator({ onGenerate }: AdGeneratorProps) {
           <input value={audience} onChange={(event) => setAudience(event.target.value)} placeholder="e.g. Busy pet parents" maxLength={200} required />
         </label>
 
+        <label className={styles.field}><span>Destination URL</span><input type="url" placeholder="https://brand.com/campaign" value={destinationUrl} onChange={e=>setDestinationUrl(e.target.value)} required /></label>
+        <label className={styles.field}><span>Describe the ad you want</span><textarea rows={4} maxLength={1200} placeholder="For example: A bright summer campaign focused on our new smoothie flavors, with an energetic headline and a clear call to action." value={instructions} onChange={e=>setInstructions(e.target.value)} required /></label>
         <div className={styles.row}>
           <label className={styles.field}>
             <span>Platform</span>
